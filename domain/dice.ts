@@ -1,9 +1,9 @@
 export default class Dice {
     numberFaces:number
-    value:number | undefined
+    value:number
     constructor(numberFaces = 6){
         this.numberFaces = numberFaces
-        this.value = undefined
+        this.value = 0
     }
 
     roll(){
