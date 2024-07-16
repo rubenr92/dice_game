@@ -1,76 +1,102 @@
-const {DataTypes, Model} = require('sequelize')
+import { gameInterface } from "../domain/gameInterface"
 
+const {DataTypes, Model, Sequelize} = require('sequelize')
+//const sequelize = new Sequelize({dialect: 'mysql', host:'localhost', port:'3306', username:'root', password:'1234', database:'dados'})
 
-class Jugada extends Model {
-  /*static async roll(valor1:Number, valor2:Number, res:any, id:any){
-      //const dado1 = Math.floor(Math.random() * 6) + 1
-      //const dado2 = Math.floor(Math.random() * 6) + 1
-      //const res = (dado1 + dado2) == 7 ? 1:0
-      console.log(valor1,valor2)
-      await this.create({dado1:valor1, dado2:valor2, resultado:res, idJugador:id})
+class GameModel extends Model {
 
-  }*/
+  static async saveGame(game:gameInterface){
+    await this.create(game)
+  }
 
-  static async playergames(playerId:any){ //buscar por nombre?
+  static async playerGames(playerId:any){
 
-      const resultadoQuery = await this.findAll({
-              attributes:['dado1', 'dado2', 'resultado'],     
-              where:{idJugador:playerId}})
+      let queryResult = await this.findAll({
+              attributes:['roll1', 'roll2', 'result'],     
+              where:{playerId:playerId}})
 
-      const porcentajeVictorias = resultadoQuery.reduce((acumulador:Number, valorActual:any)=>{return acumulador + valorActual.toJSON()['resultado']},0) /
-                                  resultadoQuery.length * 100
-                                                      
-      console.log(porcentajeVictorias)
-      return resultadoQuery
+      const winningPercentage = queryResult.reduce((acumulador:Number, valorActual:any)=>{return acumulador + valorActual.toJSON()['result']},0) /
+                                  queryResult.length * 100
+      
+      queryResult = queryResult.map((elem:any)=>elem.toJSON())
+      return {games:queryResult, winningPercentage:winningPercentage.toFixed(2)}
     }
   
     static async deleteGames(playerId:any){
       await this.destroy({where:{idJugador:playerId}})
     }
+
+    static async updatePlayer(playerId:string, newId:string){
+      await this.update({playerId:newId},{where:{playerId:playerId}})
+    }
   
-    static async ranking(limit=null, ord='DESC'){
+    static async ranking(){
 
-      const order = [['partidasGanadas', ord]]
-
-      let resultadoQuery = await  this.findAll({
-          attributes:['idJugador', [sequelize.fn('COUNT', (sequelize.col('resultado'))),'partidasJugadas'],
-                      [sequelize.fn('SUM', (sequelize.col('resultado'))),'partidasGanadas']], 
-          group:'idJugador',
-          limit: limit,
-          order:order})
-
-      resultadoQuery = resultadoQuery.map(
-          (model:any)=>{const output = model.toJSON();
-                      output['porcentajeVictorias'] = output['partidasGanadas'] / output['partidasJugadas'] * 100
-                      return output })
-                      console.log(resultadoQuery)
-      return resultadoQuery
+      const [result, metadata] = await this.sequelize.query(
+                `SELECT playerId, played_games, won_games, (won_games/played_games) * 100 AS winning_percentage 
+                    FROM (SELECT playerId, COUNT(result) AS played_games, SUM(result) AS won_games FROM ${this.getTableName()} GROUP BY playerId) 
+                    AS statistics ORDER BY winning_percentage DESC`)
+      return result
     }
 }
-/*const gameModel = {
-    id: {
-      type: DataTypes.INTEGER,
-      unsigned: true,
-      autoIncrement: true,
-      primaryKey: true,
-    },
-  
-    dado1: {
-      type:DataTypes.INTEGER,
-      allowNull: false,
-    },
-  
-    dado2: {
-      type:DataTypes.INTEGER,
-      allowNull: false,
-    },
-  
-    resultado: {
-      type: DataTypes.INTEGER
-    },
-  
-    idJugador: DataTypes.STRING(20),
 
-}*/
+const modelAttributes = 
+  {id: {
+    type: DataTypes.INTEGER,
+    unsigned: true,
+    autoIncrement: true,
+    primaryKey: true,
+  },
 
-export {gameModel}
+  roll1: {
+    type:DataTypes.INTEGER,
+    allowNull: false,
+  },
+
+  roll2: {
+    type:DataTypes.INTEGER,
+    allowNull: false,
+  },
+
+  result: {
+    type: DataTypes.INTEGER
+  },
+
+  playerId: DataTypes.STRING(20),
+}
+
+
+/*async function t(){
+  try {
+    await sequelize.authenticate();
+    console.log('Connection has been established successfully.');
+  } catch (error) {
+    console.error('Unable to connect to the database:', error);
+  }
+
+}
+t()
+
+async function f(){
+  await sequelize.sync({ force: true });
+}
+
+async function g(){
+  await Jugada.saveGame({roll1:2,roll2:3, result:0, playerId:'Ruben'})
+  await Jugada.saveGame({roll1:2,roll2:5, result:1, playerId:'Ruben'})
+  await Jugada.saveGame({roll1:3,roll2:4, result:1, playerId:'Ruben'})
+  await Jugada.saveGame({roll1:2,roll2:3, result:0, playerId:'Carlos'})
+  await Jugada.saveGame({roll1:2,roll2:5, result:1, playerId:'Carlos'})
+  await Jugada.saveGame({roll1:3,roll2:2, result:0, playerId:'Carlos'})
+  await Jugada.updatePlayer('Carlos', 'David')
+  const r = await Jugada.playerGames('Ruben')
+  const r2 = await Jugada.ranking()
+  console.log(r)
+  console.log(r2)
+}
+
+setTimeout(f, 3000)
+setTimeout(g,5000)
+
+*/
+export {GameModel, modelAttributes}

@@ -4,15 +4,24 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "npx ts-node application/gameHandler.ts"
+    "test": "npx ts-node application/gameHandler.ts",
+    "testin": "npx ts-node infrastructure/dependencies.ts",
+    "dbtest": "npx ts-node infrastructure/dbConnection.ts",
+    "start": "npx ts-node infrastructure/server.start.ts"
   },
   "author": "Ruben Reina",
   "license": "ISC",
   "devDependencies": {
+    "@types/express": "^4.17.21",
     "@types/jest": "^29.5.12",
     "@types/node": "^20.14.9",
     "jest": "^29.7.0",
+    "mysql2": "^3.10.2",
+    "sequelize": "^6.37.3",
     "ts-jest": "^29.1.5",
     "ts-node": "^10.9.2"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
   }
 }
